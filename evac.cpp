@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include "evac.h"
 #include "EvacRunner.h"
+#include "QueueLL.h"
 #include <cmath>
 
 using namespace std;
@@ -78,6 +79,11 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
 {
   int rootID = findCenter(evacIDs, numEvacs);
   cout << "root is: " << rootID << endl;
+  
+  cout << "bfs from root is:";
+  bfs(rootID);
+  cout << endl;
+  
   //depth first search to determine which path to take (network flow)
 } // evacuate
 
@@ -112,4 +118,56 @@ int Evac :: findCenter(int * evacCitiesID, int numEvacs)
     }
   }
   return the_chosen_one;//index closest to centroid
+}
+
+void Evac :: bfs(int root_id)
+{
+  int V = numCities;//
+  bool new_added = false;//check to make sure if something new was added for depth
+  int depth = 0;
+  int visited_count = 0;
+  // Mark all the vertices as not visited
+  bool *visited = new bool[V];
+  for(int i = 0; i < V; i++)
+      visited[i] = false;
+
+  // Create a queue for BFS
+  QueueLL<int> queue;
+
+  // Mark the current node as visited and enqueue it
+  visited[root_id] = true;
+  queue.enqueue(root_id);
+
+  // 'i' will be used to get all adjacent
+  // vertices of a vertex
+  //list<int>::iterator i;
+
+  while(!queue.isEmpty())
+  {
+    if(visited_count == numCities)//if everything was already visited => finished
+      break;
+    // Dequeue a vertex from queue and print it
+    root_id = queue.dequeue();//update index id to traverse down and find the deepest node
+    new_added = false;
+    cout << root_id << " ";
+
+    // Get all adjacent vertices of the dequeued
+    // vertex s. If a adjacent has not been visited, 
+    // then mark it visited and enqueue it
+    for (int i = 0; i < numAdjCities[root_id]; i++)//i = adj[s].begin(); i != adj[s].end(); ++i)
+    {
+      if (!visited[adjList[root_id][i]])
+      {
+        visited[adjList[root_id][i]] = true;
+        queue.enqueue(adjList[root_id][i]);
+        visited_count++;
+        new_added = true;//something new was added
+      }
+    }
+    if((visited_count < numCities) && new_added)//if there are more nodes down and that something new was added
+        depth++;
+    
+  }
+  cout << endl;
+  cout << "depth is: " << depth << endl;
 }

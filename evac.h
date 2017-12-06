@@ -25,6 +25,7 @@ public:
   void evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
     int &routeCount); // student sets evacRoutes and routeCount
   int findCenter(int * evacCitiesID, int numEvacs);
+  void bfs(int root_id);
   
 }; // class Evac
 
