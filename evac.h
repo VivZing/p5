@@ -4,35 +4,28 @@
 
 #include "EvacRunner.h"
 
-// class coordinates
-// {
-  // int x;
-  // int y;
-  // public:
-    // void set(int xp, int yp){x = xp; y = yp;}
-// };
 
 class Evac
 {
   int numCities;
-  int* sorted_index;
-  int* numAdjCities;
-  City* c;
-  // coordinates* coordCities;
+  City* city;
+  bool* evacCity;
+  int* cityDepth;
+  
   int** adjList;
+  
+  int* sorted_index;
   
 public:
   Evac(City *cities, int numCities, int numRoads);
   void evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
     int &routeCount); // student sets evacRoutes and routeCount
   int findCenter(int * evacCitiesID, int numEvacs);
-  int bfs(int root_id);
+  void bfs(int root_id);
+  //void sort();
   void print_adjList();
-  void DFSUtil(int v, bool visited[]);
-  void dfs(int root);
   
 }; // class Evac
-
 
 
 #endif
