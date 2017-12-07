@@ -28,6 +28,8 @@ public:
   int findCenter(int * evacCitiesID, int numEvacs);
   int bfs(int root_id);
   void print_adjList();
+  void DFSUtil(int v, bool visited[]);
+  void dfs(int root);
   
 }; // class Evac
 

@@ -68,7 +68,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
   cout << "root city is: " << rootID << endl;
   cout << "depth of root is: " << bfs(rootID) << endl;
   
-  cout << "sorted index: ";
+  cout << "bfs path of root: ";
   for(int i = 0;i<numCities;i++)
     cout << sorted_index[i] << " ";
   cout << endl;
@@ -89,6 +89,9 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
   cout<<"SORTED outcome:"<<endl;
   print_adjList();
   
+  cout << "dfs of root: ";
+  dfs(rootID);
+  cout << endl;
   //depth first search to determine which path to take (network flow)
 } // evacuate
 
@@ -123,6 +126,45 @@ int Evac :: findCenter(int * evacCitiesID, int numEvacs)
   }
   return the_chosen_one;//index closest to centroid
 }
+
+void Evac::DFSUtil(int v, bool visited[])
+{
+  // Mark the current node as visited and
+  // print it
+  visited[v] = true;
+  cout << v << " ";
+
+  // Recur for all the vertices adjacent to this vertex
+  // list<int>::iterator i;
+  // for(i = adj[v].begin(); i != adj[v].end(); ++i)
+    // if(!visited[*i])
+      // DFSUtil(*i, visited);
+    
+  for(int i = 0; i < numAdjCities[v]; i++)
+  {
+    if(!visited[adjList[v][i]])
+      DFSUtil(adjList[v][i], visited);
+  }
+    
+    
+}
+ 
+// The function to do DFS traversal. It uses recursive DFSUtil()
+void Evac::dfs(int root)
+{
+  int V = numCities;
+  // Mark all the vertices as not visited
+  bool *visited = new bool[V];
+  for (int i = 0; i < V; i++)
+    visited[i] = false;
+
+  // Call the recursive helper function
+  // to print DFS traversal
+  for (int i = 0; i < V; i++)
+    if (visited[i] == false)
+      DFSUtil(root, visited);
+}
+ 
 
 int Evac :: bfs(int root_id)
 {
