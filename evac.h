@@ -15,6 +15,7 @@
 class Evac
 {
   int numCities;
+  int* sorted_index;
   int* numAdjCities;
   City* c;
   // coordinates* coordCities;
@@ -25,7 +26,8 @@ public:
   void evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
     int &routeCount); // student sets evacRoutes and routeCount
   int findCenter(int * evacCitiesID, int numEvacs);
-  void bfs(int root_id);
+  int bfs(int root_id);
+  void print_adjList();
   
 }; // class Evac
 

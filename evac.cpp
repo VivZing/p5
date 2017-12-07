@@ -25,6 +25,7 @@ Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie)
   }
   
   //init the adjacent list
+  sorted_index = new int[numCities];
   numAdjCities = new int[numCities];
   // coordCities = new coordinates[numCities];
   adjList = new int*[numCities];
@@ -49,22 +50,7 @@ Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie)
   }
   
   
-  //print adjList
-  for (int k = 0; k < numCities; k++)
-  {
-    for (int l = 0; l <= numAdjCities[k]; l++)
-    {
-      if (l == 0)
-      {
-        cout << "city ID = " << adjList[k][l] << endl;
-        cout << "adjacent to: ";
-        continue;
-      }
-      
-      cout << adjList[k][l] << " ";
-    }
-    cout << endl;
-  }
+  print_adjList();
   
   
   //find the center of the cluster
@@ -77,12 +63,31 @@ Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie)
 void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
     int &routeCount)
 {
+  //find the center of the cluster
   int rootID = findCenter(evacIDs, numEvacs);
-  cout << "root is: " << rootID << endl;
+  cout << "root city is: " << rootID << endl;
+  cout << "depth of root is: " << bfs(rootID) << endl;
   
-  cout << "bfs from root is:";
-  bfs(rootID);
+  cout << "sorted index: ";
+  for(int i = 0;i<numCities;i++)
+    cout << sorted_index[i] << " ";
   cout << endl;
+  
+  //sort the adjList
+  int** temp;
+  int* n = new int[numCities];
+  temp = new int*[numCities];
+  for(int x = 0; x < numCities; x++)
+  {
+    temp[x] = new int[numAdjCities[sorted_index[x]]];
+    temp[x] = adjList[sorted_index[x]];
+    n[x] = numAdjCities[sorted_index[x]];
+  }
+  
+  numAdjCities = n;
+  adjList = temp;
+  cout<<"SORTED outcome:"<<endl;
+  print_adjList();
   
   //depth first search to determine which path to take (network flow)
 } // evacuate
@@ -101,7 +106,6 @@ int Evac :: findCenter(int * evacCitiesID, int numEvacs)
   x = x/(double)numEvacs;
   y = y/(double)numEvacs;
   
-  cout << "found centroid" << endl;
   //find the closest adjacentID
   int d = 0;
   int min = 9999;
@@ -120,12 +124,13 @@ int Evac :: findCenter(int * evacCitiesID, int numEvacs)
   return the_chosen_one;//index closest to centroid
 }
 
-void Evac :: bfs(int root_id)
+int Evac :: bfs(int root_id)
 {
   int V = numCities;//
   bool new_added = false;//check to make sure if something new was added for depth
   int depth = 0;
   int visited_count = 0;
+  int index = 0;
   // Mark all the vertices as not visited
   bool *visited = new bool[V];
   for(int i = 0; i < V; i++)
@@ -149,7 +154,9 @@ void Evac :: bfs(int root_id)
     // Dequeue a vertex from queue and print it
     root_id = queue.dequeue();//update index id to traverse down and find the deepest node
     new_added = false;
-    cout << root_id << " ";
+    // cout << root_id << " ";
+    sorted_index[index] = root_id;
+    index++;
 
     // Get all adjacent vertices of the dequeued
     // vertex s. If a adjacent has not been visited, 
@@ -168,6 +175,29 @@ void Evac :: bfs(int root_id)
         depth++;
     
   }
-  cout << endl;
-  cout << "depth is: " << depth << endl;
+  // cout << endl;
+  // cout << "depth is: " << depth << endl;
+  return depth;
+}
+
+void Evac :: print_adjList()
+{
+  
+  //print adjList
+  for (int k = 0; k < numCities; k++)
+  {
+    for (int l = 0; l <= numAdjCities[k]; l++)
+    {
+      if (l == 0)
+      {
+        cout << "city ID = " << adjList[k][l] << endl;
+        cout << "adjacent to: ";
+        continue;
+      }
+      
+      cout << adjList[k][l] << " ";
+    }
+    cout << endl;
+  }
+  cout<<endl;
 }
