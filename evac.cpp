@@ -46,6 +46,7 @@ Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie)
     }
   }
   
+  path = new int[totalRoads];
   sorted_index = new int[numCities];
   
   print_adjList();
@@ -79,7 +80,7 @@ void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
   
   
   //depth first search to determine which path to take
-  dfs(evacRoutes, routeCount);
+  dfs(evacIDs, numEvacs, &evacRoutes, routeCount);
   
 } // evacuate
 
@@ -105,7 +106,7 @@ bool Evac :: fullyEvacuated(int *evacIDs, int numEvacs)
 }  //fullyEvacuated()
 
 
-void Evac :: dfs(int *evacIDs, int numEvacs, EvacRoute *evacRoutes, int &routeCount)
+void Evac :: dfs(int *evacIDs, int numEvacs, EvacRoute **evacRoutes, int &routeCount)
 {
   /*
     while (there are cities that haven't been completely evacuated)
@@ -140,7 +141,7 @@ void Evac :: dfs(int *evacIDs, int numEvacs, EvacRoute *evacRoutes, int &routeCo
 }  // dfs()
 
 
-int Evac :: DFS(int v, bool visited[], EvacRoute *evacRoutes, int &routeCount)
+int Evac :: DFS(int v, bool visited[], EvacRoute **evacRoutes, int &routeCount)
 {
   /*
     Find a path()
@@ -160,7 +161,7 @@ int Evac :: DFS(int v, bool visited[], EvacRoute *evacRoutes, int &routeCount)
     return total flow;
   */
   
-  int* path = new int[totalRoads];
+  //int* path = new int[totalRoads];
   
   if (visited[v])  //current city has been visited
   {
@@ -171,6 +172,7 @@ int Evac :: DFS(int v, bool visited[], EvacRoute *evacRoutes, int &routeCount)
     // Mark the current city as visited
     visited[v] = true;
     
+    //for loop {
     if (!city[v].evacCity)  //current city does not need to be evacuated
     {
       //store as much evacuees as possible
@@ -180,6 +182,7 @@ int Evac :: DFS(int v, bool visited[], EvacRoute *evacRoutes, int &routeCount)
     {
       //DFS(next city)
     }
+    //}
   }
   
   //return total flow;
