@@ -38,6 +38,8 @@ class Evac
   
   int** adjList;
   
+  int* path;
+  
   int* sorted_index;
   
 public:
@@ -45,8 +47,8 @@ public:
   void evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
     int &routeCount); // student sets evacRoutes and routeCount
   bool fullyEvacuated(int *evacIDs, int numEvacs);
-  void dfs(int *evacIDs, int numEvacs, EvacRoute *evacRoutes, int &routeCount);
-  int DFS(EvacRoute *evacRoutes, int &routeCount);
+  void dfs(int *evacIDs, int numEvacs, EvacRoute **evacRoutes, int &routeCount);
+  int DFS(int v, bool visited[], EvacRoute **evacRoutes, int &routeCount);
   int findCenter(int * evacCitiesID, int numEvacs);
   void bfs(int root_id);
   void print_adjList();
