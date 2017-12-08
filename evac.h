@@ -34,6 +34,7 @@ class Evac
   //City* city;
   //bool* evacCity;
   //int* cityDepth;
+  int totalRoads;
   
   int** adjList;
   
@@ -43,9 +44,11 @@ public:
   Evac(City *cities, int numCities, int numRoads);
   void evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
     int &routeCount); // student sets evacRoutes and routeCount
+  bool fullyEvacuated(int *evacIDs, int numEvacs);
+  void dfs(int *evacIDs, int numEvacs, EvacRoute *evacRoutes, int &routeCount);
+  int DFS(EvacRoute *evacRoutes, int &routeCount);
   int findCenter(int * evacCitiesID, int numEvacs);
   void bfs(int root_id);
-  //void sort();
   void print_adjList();
   
 }; // class Evac
