@@ -1,245 +1,274 @@
-#include <cstdlib>
 #include "evac.h"
+#include <cstdlib>
+#include "QueueAr.h"
 #include "EvacRunner.h"
-#include "QueueLL.h"
-#include <cmath>
 
 using namespace std;
 
-Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie)
+Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie), time(1)
 {
-  //cout << "numCitie = " << numCitie << endl;
-  //cout << "numRoads = " << numRoads << endl;
+  int ID, roadID;
+  city = new Cities[numCities];
+  roads = new Road3[numRoads * 2];
+  usedIDs = new int[numRoads * 5];
   
-  //deep copy city TEMP
-  c = new City[numCities];//citie;
-  for(int x = 0; x < numCitie; x++)
+  bfs_queue = new QueueAr<int>(numCities);
+  dfs_queue = new QueueAr<int>(numCities);
+  bfs_visited = new bool[numCities];
+  dfs_visited = new bool[numCities];
+    
+  for(int i = 0; i < numCitie; i++)
   {
-    c[x].ID = citie[x].ID;
-    c[x].x = citie[x].x;
-    c[x].y = citie[x].y;
-    c[x].population = citie[x].population;
-    c[x].evacuees = citie[x].evacuees;
-    c[x].roads = citie[x].roads;
-    c[x].roadCount = citie[x].roadCount;
-  }
-  
-  //init the adjacent list
-  sorted_index = new int[numCities];
-  numAdjCities = new int[numCities];
-  // coordCities = new coordinates[numCities];
-  adjList = new int*[numCities];
-  
-  for (int i = 0; i < numCities; i++)
-  {
-    //cout << "city ID = " << citie[i].ID << endl;
-    //cout << "roadCount = " << citie[i].roadCount << endl << endl;
-    
-    numAdjCities[i] = citie[i].roadCount;//roadcount is the number of roads connecting to adj cities
-    // coordCities[i].set(citie[i].x, citie[i].y);
-    adjList[i] = new int[citie[i].roadCount + 1];
-    
-    //populate adjList
-    adjList[i][0] = citie[i].ID;
-    
-    for (int j = 1; j <= numAdjCities[i]; j++)
+    bfs_visited[i] = false;
+    dfs_visited[i] = false;
+    ID = citie[i].ID;
+    city[ID].evacuees = 0;
+    city[ID].population = citie[i].population;
+    city[ID].roadCount = citie[i].roadCount;
+    city[ID].roadIDs = new int[city[ID].roadCount];
+    for(int j = 0; j < city[ID].roadCount; j++)
     {
-      adjList[i][j] = citie[i].roads[j - 1].destinationCityID;
-    }
-    
+      city[ID].roadIDs[j] = roadID = citie[i].roads[j].ID;
+      roads[roadID].destinationCityID = citie[i].roads[j].destinationCityID;
+      roads[roadID].peoplePerHour = citie[i].roads[j].peoplePerHour;
+    } // for each road
   }
-  
-  
-  print_adjList();
-  
-  
-  //find the center of the cluster
-  //breadth first search to calculate depths
-  //store depths somewhere (array?) where the higher depths are at the front)
-  
 } // Evac()
 
 
 void Evac::evacuate(int *evacIDs, int numEvacs, EvacRoute *evacRoutes,
     int &routeCount)
 {
-  //find the center of the cluster
-  int rootID = findCenter(evacIDs, numEvacs);
-  cout << "root city is: " << rootID << endl;
-  cout << "depth of root is: " << bfs(rootID) << endl;
-  
-  cout << "bfs path of root: ";
-  for(int i = 0;i<numCities;i++)
-    cout << sorted_index[i] << " ";
-  cout << endl;
-  
-  //sort the adjList
-  int** temp;
-  int* n = new int[numCities];
-  temp = new int*[numCities];
-  for(int x = 0; x < numCities; x++)
+  int ID, total, cityID, people_remaining;
+  routeCount = 0;
+  evacArray = new City3[numEvacs];
+  // visitedCount = 0;
+
+  for(int i = 0; i < numEvacs; i++)//init the evacuated city arry
   {
-    temp[x] = new int[numAdjCities[sorted_index[x]]];
-    temp[x] = adjList[sorted_index[x]];
-    n[x] = numAdjCities[sorted_index[x]];
+    ID = evacIDs[i];
+    bfs_visited[ID] = true;
+    city[ID].end = false;
+    city[ID].evacCity = true;
+    city[ID].depth = 1;
+    bfs_queue->enqueue(ID);
+    evacArray[i].ID = ID;
   }
-  
-  numAdjCities = n;
-  adjList = temp;
-  cout<<"SORTED outcome:"<<endl;
-  print_adjList();
-  
-  cout << "dfs of root: ";
-  dfs(rootID);
-  cout << endl;
-  //depth first search to determine which path to take (network flow)
+
+  do//while(remain)
+  {
+    usedCount = 0;
+    bfs();
+    //remain = processEvacsArray(evacArray, numEvacs);
+    for(int i = 0; i < numEvacs; i++)//go through each evacuating cities
+    {
+      total = 0;
+      cityID = evacArray[i].ID;
+      
+      //reset all the visited cities SO FAR
+      while(!dfs_queue->isEmpty())
+        dfs_visited[dfs_queue->dequeue()]=false;//visitedIDs[visitedCount]] = false;
+      
+      //set the current evacuating city is visited
+      dfs_queue->enqueue(cityID);//visitedIDs[visitedCount] = cityID;
+      //visitedCount++;
+      dfs_visited[cityID] = true;
+
+      for(int i = 0; i < city[cityID].roadCount; i++)//go through each evacuated citiy's road
+      {
+        people_remaining = city[cityID].population - city[cityID].evacuees;
+        if(total >= people_remaining)
+          break;
+        total = max_flow(cityID, i, total, people_remaining);
+      }  // for each road
+      city[cityID].evacuees += total;
+    } // for each evac city
+    
+    for(int i = 0; i < numCities; i++)
+      dfs_visited[i] = false;
+    
+    storeRoutes(evacRoutes, routeCount);
+    time++;
+  }while(processEvacsArray(evacArray, numEvacs));
+
 } // evacuate
 
 
-int Evac :: findCenter(int * evacCitiesID, int numEvacs)
+int Evac :: max_flow(int city_id, int index, int total, int people_remaining)
 {
-  //find the center coordinates
-  double x = 0.0;
-  double y = 0.0;
-  for(int i = 0; i < numEvacs; i++)
-  {
-    x += c[evacCitiesID[i]].x;
-    y += c[evacCitiesID[i]].y;
-  }
-  x = x/(double)numEvacs;
-  y = y/(double)numEvacs;
+  int max = total;
+  int road_id = city[city_id].roadIDs[index];
+  int flow = roads[road_id].peoplePerHour - roads[road_id].used;
   
-  //find the closest adjacentID
-  int d = 0;
-  int min = 9999;
-  int the_chosen_one = 0; 
-  for(int i = 0; i < numEvacs; i++)
+  if(flow > people_remaining - max)
+    flow = people_remaining - max;
+  
+  flow = dfs(roads[road_id].destinationCityID, flow, city_id);
+  roads[road_id].used += flow;
+  max += flow;
+  
+  if(flow > 0)
+    usedIDs[usedCount++] = road_id;
+  
+  return max;
+}
+
+void Evac::storeRoutes(EvacRoute *evacRoutes, int &routeCount)
+{
+  for(int i = 0; i < usedCount; i++)
   {
-    //distance between center points and coordinates of evacCitiesID
-    d = pow( (x - c[evacCitiesID[i]].x), 2 ) - pow( (y - c[evacCitiesID[i]].y), 2);
-    d = sqrt(d);
-    if(d <= min)
+    evacRoutes[routeCount].roadID = usedIDs[i];
+    evacRoutes[routeCount].numPeople = roads[usedIDs[i]].used;
+    evacRoutes[routeCount++].time = time;
+    roads[usedIDs[i]].used = 0;
+    dfs_visited[roads[usedIDs[i]].destinationCityID] = false;
+  } // for each road used
+}
+
+int Evac::dfs(unsigned short cityID, int people_remaining, unsigned short sourceCityID)
+{
+  int i, total = 0;
+  if(!dfs_visited[cityID])
+  {
+    dfs_visited[cityID] = true; // stop loops
+    dfs_queue->enqueue(cityID);//visitedIDs[visitedCount++] = cityID;
+  }
+  else
+  {
+    return 0;
+  }
+  
+  if(!city[cityID].evacCity) // not an evacuated city
+  {
+    if(people_remaining > city[cityID].population - city[cityID].evacuees)
     {
-      min = d;
-      the_chosen_one = i;
+      total = city[cityID].population - city[cityID].evacuees;
+      city[cityID].evacuees = city[cityID].population;
     }
-  }
-  return the_chosen_one;//index closest to centroid
-}
+    else // not enough room in city for people_remaining
+    {
+      city[cityID].evacuees += people_remaining;
+      return people_remaining;
+    }
+  } // if not an evacuated city then absorb some of the people_remaining
 
-void Evac::DFSUtil(int v, bool visited[])
-{
-  // Mark the current node as visited and
-  // print it
-  visited[v] = true;
-  cout << v << " ";
+  if(city[cityID].end)
+    return total;
 
-  // Recur for all the vertices adjacent to this vertex
-  // list<int>::iterator i;
-  // for(i = adj[v].begin(); i != adj[v].end(); ++i)
-    // if(!visited[*i])
-      // DFSUtil(*i, visited);
-    
-  for(int i = 0; i < numAdjCities[v]; i++)
+  for(i = 0; i < city[cityID].roadCount; i++)
   {
-    if(!visited[adjList[v][i]])
-      DFSUtil(adjList[v][i], visited);
-  }
-    
-    
-}
- 
-// The function to do DFS traversal. It uses recursive DFSUtil()
-void Evac::dfs(int root)
-{
-  int V = numCities;
-  // Mark all the vertices as not visited
-  bool *visited = new bool[V];
-  for (int i = 0; i < V; i++)
-    visited[i] = false;
-
-  // Call the recursive helper function
-  // to print DFS traversal
-  for (int i = 0; i < V; i++)
-    if (visited[i] == false)
-      DFSUtil(root, visited);
-}
- 
-
-int Evac :: bfs(int root_id)
-{
-  int V = numCities;//
-  bool new_added = false;//check to make sure if something new was added for depth
-  int depth = 0;
-  int visited_count = 0;
-  int index = 0;
-  // Mark all the vertices as not visited
-  bool *visited = new bool[V];
-  for(int i = 0; i < V; i++)
-      visited[i] = false;
-
-  // Create a queue for BFS
-  QueueLL<int> queue;
-
-  // Mark the current node as visited and enqueue it
-  visited[root_id] = true;
-  queue.enqueue(root_id);
-
-  // 'i' will be used to get all adjacent
-  // vertices of a vertex
-  //list<int>::iterator i;
-
-  while(!queue.isEmpty())
-  {
-    if(visited_count == numCities)//if everything was already visited => finished
+    if(total >= people_remaining)
       break;
-    // Dequeue a vertex from queue and print it
-    root_id = queue.dequeue();//update index id to traverse down and find the deepest node
-    new_added = false;
-    // cout << root_id << " ";
-    sorted_index[index] = root_id;
-    index++;
-
-    // Get all adjacent vertices of the dequeued
-    // vertex s. If a adjacent has not been visited, 
-    // then mark it visited and enqueue it
-    for (int i = 0; i < numAdjCities[root_id]; i++)//i = adj[s].begin(); i != adj[s].end(); ++i)
-    {
-      if (!visited[adjList[root_id][i]])
-      {
-        visited[adjList[root_id][i]] = true;
-        queue.enqueue(adjList[root_id][i]);
-        visited_count++;
-        new_added = true;//something new was added
-      }
-    }
-    if((visited_count < numCities) && new_added)//if there are more nodes down and that something new was added
-        depth++;
+    //if same city
+    if(roads[city[cityID].roadIDs[i]].destinationCityID == sourceCityID)
+      continue;  // no infinite loops!
     
+     total = max_flow(cityID, i, total, people_remaining);
   }
-  // cout << endl;
-  // cout << "depth is: " << depth << endl;
-  return depth;
-}
+  return total;
+} // dfs()
 
-void Evac :: print_adjList()
+
+bool Evac :: fullyEvacuated(int *evacIDs, int numEvacs)
 {
+  bool fullyEvacuated;
   
-  //print adjList
-  for (int k = 0; k < numCities; k++)
+  for (int i = 0; i < numEvacs; i++)
   {
-    for (int l = 0; l <= numAdjCities[k]; l++)
+    if (city[evacIDs[i]].population == 0)
     {
-      if (l == 0)
-      {
-        cout << "city ID = " << adjList[k][l] << endl;
-        cout << "adjacent to: ";
-        continue;
-      }
-      
-      cout << adjList[k][l] << " ";
+      fullyEvacuated = true;
     }
-    cout << endl;
+    else
+    {
+      fullyEvacuated = false;
+      break;
+    }
   }
-  cout<<endl;
-}
+  
+  return fullyEvacuated;
+}  //fullyEvacuated()
+
+bool Evac::processEvacsArray(City3 *evacArray, int numEvacs)
+{
+  // int capacity;
+  bool remain = false;
+  // int road_ID;
+  int city_ID;
+  for(int i = 0; i < numEvacs; i++)//go through each evacuated city
+  {
+    city_ID = evacArray[i].ID;
+    if(city[city_ID].evacuees < city[city_ID].population)
+    {
+      //remain = true;
+      return true;
+      // capacity = 0;
+      // for(int j = 0; j < city[city_ID].roadCount; j++)
+      // {
+        // road_ID = city[city_ID].roadIDs[j];
+        // if(roads[road_ID].peoplePerHour <
+          // city[roads[road_ID].destinationCityID].population)
+          // capacity += roads[road_ID].peoplePerHour;
+        // else
+          // capacity += city[roads[road_ID].destinationCityID].population;
+      // evacArray[i].ratio = (city[city_ID].population - city[city_ID].evacuees)
+          // / (1.0 * capacity);
+      // }
+    } // if some evacuees still remain
+  } // for each city still in the evacArray
+
+  // if(remain)
+    // qsort(evacArray, numEvacs, sizeof(City3), City3Cmp);
+
+  return remain;
+} // processEvacsArray
+
+
+void Evac::bfs()//BFS
+{
+  int ID, destCityID;
+  
+  int i = bfs_queue->front;
+  while(i < bfs_queue->back)//set evacuated city' end as FALSE
+  {
+    city[bfs_queue->get(i)].end = false;
+    i++;
+  }
+
+  while(!bfs_queue->isEmpty())//while queue is not empty
+  {
+    ID = bfs_queue->dequeue();//queue[front];
+    //front++;
+
+    for(int j = 0; j < city[ID].roadCount;j++)//go through each road of the evac city
+    {
+      //roads is an array of ALL the roads
+      //one of the evacuated city's road's DESTINATIONCITYID
+      destCityID = roads[city[ID].roadIDs[j]].destinationCityID;
+      
+      //if the destination city is NOT visited
+      if(bfs_visited[destCityID] == false)//if visited
+      {
+        bfs_queue->enqueue(destCityID);//[back] = destCityID;
+        //back++;
+        city[ID].depth = time + 1;
+        bfs_visited[destCityID] = true;//defalut check is false
+      }
+  
+      //if is the evac city
+      //one road move == one hour time
+      //IF current time and depth allows it
+      if(city[destCityID].evacCity && city[destCityID].depth < time - 1)//not root and depth can be further
+      // more than one level back in tree so eliminate road
+      {
+        //move current road to the last block
+        //essentially deleting the current road
+        //int temp = city[ID].roadIDs[j];
+        city[ID].roadCount--;//decrease the road count
+        city[ID].roadIDs[j] = city[ID].roadIDs[city[ID].roadCount];//set the current road as the last one
+        //city[ID].roadIDs[city[ID].roadCount] = temp;
+      }
+    } // for each road
+  } // while more in the queue for this round
+
+} // processQ()
