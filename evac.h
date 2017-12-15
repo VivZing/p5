@@ -10,12 +10,12 @@ class Cities
 public:
   int population;
   int evacuees;
-  int *roadIDs;
+  int *road_ids;
   int roadCount;
   
   bool evacCity;
-  Cities():evacuees(0), roadIDs(NULL), roadCount(0), evacCity(false) {}
-   ~Cities(){delete [] roadIDs;}
+  Cities():evacuees(0), road_ids(NULL), roadCount(0), evacCity(false) {}
+   ~Cities(){delete [] road_ids;}
 };
 
 class Evac
@@ -26,7 +26,7 @@ class Evac
   // int totalRoads;
 
   int* used_roads;
-  int *usedIDs;
+  int *used_ids;
   
   Cities *city;
   Road *roads;
@@ -36,11 +36,6 @@ class Evac
   
   bool* bfs_visited;
   bool* dfs_visited;
-  // Road3 *roads;
-  
-  
-  //City3 *evacArray;
-  //EvacRoute *evacRoutes2;
   
   void bfs();
   bool space_available(int* evacIDs, int numEvacs);

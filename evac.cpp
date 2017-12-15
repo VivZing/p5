@@ -5,14 +5,14 @@
 
 using namespace std;
 
-Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie), time(1)
+Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie), time(1), roads_used(0)
 {
   int city_id;
   int road_id;
   city = new Cities[numCities];
   roads = new Road[numRoads * 2];
   used_roads = new int[numRoads * 2];
-  usedIDs = new int[numRoads];
+  used_ids = new int[numRoads];
     
   bfs_queue = new QueueAr<int>(numCities);
   dfs_queue = new QueueAr<int>(numCities);
@@ -27,11 +27,12 @@ Evac::Evac(City *citie, int numCitie, int numRoads) : numCities(numCitie), time(
     city_id = citie[x].ID;
     city[city_id].population = citie[x].population;
     city[city_id].roadCount = citie[x].roadCount;
-    city[city_id].roadIDs = new int[city[city_id].roadCount];
+    city[city_id].road_ids = new int[city[city_id].roadCount];
     // totalRoads += city[city_id].roadCount;
     for(int y = 0; y < city[city_id].roadCount; y++)
     {
-      city[city_id].roadIDs[y] = road_id = citie[x].roads[y].ID;
+      road_id = citie[x].roads[y].ID;
+      city[city_id].road_ids[y] = road_id;
       roads[road_id].destinationCityID = citie[x].roads[y].destinationCityID;
       roads[road_id].peoplePerHour = citie[x].roads[y].peoplePerHour;
     } 
@@ -88,13 +89,13 @@ int Evac :: max_flow(int city_id)
     if(max_flow >= people_remaining)//make sure number of evacuees doesnt exceed population
       break;
     max_flow = find_flow(city_id, i, max_flow, people_remaining);
-  }  // for each road
+  }
   return max_flow;
 }
 
 int Evac :: find_flow(int city_id, int road_index, int current_flow, int people_remaining)
 {
-  int road_id = city[city_id].roadIDs[road_index];
+  int road_id = city[city_id].road_ids[road_index];
   int available_flow = roads[road_id].peoplePerHour - used_roads[road_id];
   int new_flow = 0;
   
@@ -105,7 +106,7 @@ int Evac :: find_flow(int city_id, int road_index, int current_flow, int people_
   
   if(available_flow > 0)
   {
-    usedIDs[roads_used] = road_id;
+    used_ids[roads_used] = road_id;
     roads_used++;
   }
   
@@ -127,7 +128,7 @@ int Evac::dfs(int destination_id, int people_remaining)
   else
     return 0;
   
-  if(city[destination_id].evacCity == false) // not an evacuated city
+  if(city[destination_id].evacCity == false) // not evaccity
   {
     if(people_remaining > available_space)//if no room
     {
@@ -154,18 +155,18 @@ int Evac::dfs(int destination_id, int people_remaining)
 void Evac::increment_time(EvacRoute *evacRoutes, int &routeCount)
 {
   int evac_id;
-  for(int i = 0; i < roads_used; i++)
+  for(int i = 0; i < roads_used; i++)// go through accessed roads
   {
-    evac_id = usedIDs[i];
+    evac_id = used_ids[i];
     evacRoutes[routeCount].roadID = evac_id;
     evacRoutes[routeCount].numPeople = used_roads[evac_id];
     evacRoutes[routeCount].time = time;
     used_roads[evac_id] = 0;
     dfs_visited[roads[evac_id].destinationCityID] = false;
     routeCount++;
-  } // go through accessed roads
-  time++;
+  }
   roads_used = 0;
+  time++;
 }
 
 bool Evac::fullyEvacuated(int* evacIDs, int numEvacs)
@@ -211,7 +212,7 @@ int Evac :: findCenter(int * evacCitiesID, int numEvacs)
 **/
 
 
-void Evac::bfs()//BFS
+void Evac::bfs()
 {
   int city_id;
   int destinationID;
@@ -222,9 +223,9 @@ void Evac::bfs()//BFS
 
     for(int j = 0; j < city[city_id].roadCount;j++)//go through each road of the evac city
     {
-      destinationID = roads[city[city_id].roadIDs[j]].destinationCityID;
+      destinationID = roads[city[city_id].road_ids[j]].destinationCityID;
       
-      //if the destination city is NOT visited
+      //not yet visited destination
       if(!bfs_visited[destinationID])
       {
         bfs_queue->enqueue(destinationID);
@@ -234,7 +235,7 @@ void Evac::bfs()//BFS
       if(city[destinationID].evacCity )//if city is evaccity
       {
         city[city_id].roadCount--;//decrease the road count
-        city[city_id].roadIDs[j] = city[city_id].roadIDs[city[city_id].roadCount];//move to end
+        city[city_id].road_ids[j] = city[city_id].road_ids[city[city_id].roadCount];//move to end
       }
     }
   } //while queue is not empty
